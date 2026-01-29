@@ -1,0 +1,104 @@
+.add-candidate-form {
+  padding: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.15);
+  margin-bottom: 1.5rem;
+}
+
+.form-heading {
+  margin: 0 0 1rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #f8fafc;
+}
+
+.add-candidate-form .form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 640px) {
+  .add-candidate-form .form-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.add-candidate-form .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.add-candidate-form .form-group label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #cbd5e1;
+}
+
+.add-candidate-form .form-group input,
+.add-candidate-form .form-group select {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.25);
+  color: #f8fafc;
+  font-size: 0.95rem;
+}
+
+.add-candidate-form .form-group input:focus,
+.add-candidate-form .form-group select:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.add-candidate-form .form-group-file .file-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.add-candidate-form .file-input {
+  font-size: 0.85rem;
+  color: #94a3b8;
+}
+
+.add-candidate-form .file-input::file-selector-button {
+  padding: 0.35rem 0.6rem;
+  margin-right: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  background: rgba(59, 130, 246, 0.2);
+  color: #93c5fd;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.add-candidate-form .file-label {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.add-candidate-form .submit-btn {
+  padding: 0.55rem 1.25rem;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.add-candidate-form .submit-btn:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.add-candidate-form .submit-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
