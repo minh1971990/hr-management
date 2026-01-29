@@ -8,6 +8,13 @@ import { AddJobForm, type AddJobFormValues } from '../components/AddJobForm';
 import { CandidateFilters, type CandidateFiltersValue } from '../components/CandidateFilters';
 import './DashboardPage.css';
 
+type AnalyticsResponse = {
+  total_candidates: number;
+  status_breakdown: Array<{ status: string; count: number; percentage: number }>;
+  top_positions: Array<{ applied_position: string; count: number }>;
+  newest_last_7_days: Candidate[];
+};
+
 export function DashboardPage() {
   const navigate = useNavigate();
   const [candidates, setCandidates] = useState<Candidate[]>([]);
@@ -17,6 +24,9 @@ export function DashboardPage() {
   const [loadingJobs, setLoadingJobs] = useState(true);
   const [addingJob, setAddingJob] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [analytics, setAnalytics] = useState<AnalyticsResponse | null>(null);
+  const [loadingAnalytics, setLoadingAnalytics] = useState(false);
+  const [analyticsError, setAnalyticsError] = useState<string | null>(null);
 
   const [filters, setFilters] = useState<CandidateFiltersValue>({
     query: '',
@@ -193,6 +203,50 @@ export function DashboardPage() {
     return withScores.map(({ c }) => c);
   }, [candidates, filters]);
 
+  const loadAnalytics = async () => {
+    setLoadingAnalytics(true);
+    setAnalyticsError(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setAnalyticsError('You must be signed in to view analytics.');
+        return;
+      }
+      const { data: refreshed, error: refreshErr } = await supabase.auth.refreshSession();
+      const accessTokenRaw = refreshed?.session?.access_token ?? session.access_token;
+      if (refreshErr || !accessTokenRaw) {
+        setAnalyticsError('Your session is no longer valid. Please sign in again.');
+        return;
+      }
+      const accessToken = accessTokenRaw.startsWith('Bearer ')
+        ? accessTokenRaw.slice('Bearer '.length)
+        : accessTokenRaw;
+
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+      const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+      const resp = await fetch(`${supabaseUrl}/functions/v1/analytics`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          apikey: anonKey,
+        },
+      });
+      const text = await resp.text();
+      const parsed = text ? (() => { try { return JSON.parse(text); } catch { return null; } })() : null;
+      if (!resp.ok) {
+        const msg =
+          (parsed && typeof parsed === 'object' && (parsed as any).error)
+            ? String((parsed as any).error)
+            : text || 'Analytics function returned an error';
+        setAnalyticsError(`${msg} (HTTP ${resp.status})`);
+        return;
+      }
+      setAnalytics(parsed as AnalyticsResponse);
+    } finally {
+      setLoadingAnalytics(false);
+    }
+  };
+
   // Realtime: when any user adds/updates/deletes a candidate, all online users' lists update
   useEffect(() => {
     const channel = supabase
@@ -277,6 +331,24 @@ export function DashboardPage() {
         return;
       }
       const userId = session.user.id;
+      // Ensure we use a fresh JWT (prevents Invalid JWT errors)
+      const { data: refreshed, error: refreshErr } = await supabase.auth.refreshSession();
+      const accessTokenRaw = refreshed?.session?.access_token ?? session.access_token;
+      if (refreshErr || !accessTokenRaw) {
+        setError('Your session is no longer valid. Please sign in again.');
+        await supabase.auth.signOut();
+        navigate('/login', { replace: true });
+        return;
+      }
+      const accessToken = accessTokenRaw.startsWith('Bearer ')
+        ? accessTokenRaw.slice('Bearer '.length)
+        : accessTokenRaw;
+      if (accessToken.split('.').length !== 3) {
+        setError('Invalid auth token format. Please sign in again.');
+        await supabase.auth.signOut();
+        navigate('/login', { replace: true });
+        return;
+      }
 
       const ext = values.resume_file.name.split('.').pop() ?? 'pdf';
       const path = `${userId}/${crypto.randomUUID()}.${ext}`;
@@ -290,23 +362,37 @@ export function DashboardPage() {
       const { data: publicUrlData } = supabase.storage.from('resumes').getPublicUrl(path);
       const resumeUrl = publicUrlData.publicUrl;
 
-      const { data: newRow, error: insertError } = await supabase
-        .from('candidates')
-        .insert({
-          user_id: userId,
+      // Use a direct fetch so we fully control auth/apikey headers (avoids opaque 401s)
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+      const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+      const resp = await fetch(`${supabaseUrl}/functions/v1/add-candidate`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          apikey: anonKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           full_name: values.full_name,
-          applied_position: selectedJob.title,
+          job_id: values.job_id,
           status: values.status,
           resume_url: resumeUrl,
-        })
-        .select('id,user_id,full_name,applied_position,status,resume_url,created_at,updated_at')
-        .single();
+        }),
+      });
 
-      if (insertError) {
-        setError(insertError.message);
+      const bodyText = await resp.text();
+      const parsed = bodyText ? (() => { try { return JSON.parse(bodyText); } catch { return null; } })() : null;
+      if (!resp.ok) {
+        const msg = (parsed && typeof parsed === 'object' && (parsed as any).error)
+          ? String((parsed as any).error)
+          : bodyText || 'Edge Function returned an error';
+        setError(`${msg} (HTTP ${resp.status})`);
         return;
       }
-      setCandidates((prev) => [newRow as Candidate, ...prev]);
+
+      const newRow = (parsed as any)?.candidate as Candidate | undefined;
+      // Realtime INSERT may arrive before this response; de-dupe by id
+      if (newRow) setCandidates((prev) => [newRow, ...prev.filter((c) => c.id !== newRow.id)]);
     } finally {
       setAdding(false);
     }
@@ -333,7 +419,8 @@ export function DashboardPage() {
         setError(insertError.message);
         return;
       }
-      setJobs((prev) => [newJob as Job, ...prev]);
+      // Realtime INSERT may arrive before this response; de-dupe by id
+      setJobs((prev) => [newJob as Job, ...prev.filter((j) => j.id !== (newJob as Job).id)]);
     } finally {
       setAddingJob(false);
     }
@@ -416,6 +503,51 @@ export function DashboardPage() {
             resultsCount={filteredCandidates.length}
             totalCount={candidates.length}
           />
+          <div className="analytics-panel">
+            <div className="analytics-header">
+              <h3 className="analytics-title">Analytics</h3>
+              <button type="button" className="analytics-refresh" onClick={loadAnalytics} disabled={loadingAnalytics}>
+                {loadingAnalytics ? 'Loading…' : 'Refresh'}
+              </button>
+            </div>
+            {analyticsError && (
+              <div className="analytics-error" role="alert">
+                {analyticsError}
+              </div>
+            )}
+            {analytics && (
+              <div className="analytics-grid">
+                <div className="analytics-card">
+                  <div className="analytics-label">Total candidates</div>
+                  <div className="analytics-value">{analytics.total_candidates}</div>
+                </div>
+                <div className="analytics-card">
+                  <div className="analytics-label">Status breakdown</div>
+                  <ul className="analytics-list">
+                    {analytics.status_breakdown.map((s) => (
+                      <li key={s.status}>
+                        <strong>{s.status}</strong>: {s.count} ({s.percentage}%)
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="analytics-card">
+                  <div className="analytics-label">Top positions</div>
+                  <ul className="analytics-list">
+                    {analytics.top_positions.map((p) => (
+                      <li key={p.applied_position}>
+                        <strong>{p.applied_position}</strong>: {p.count}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="analytics-card">
+                  <div className="analytics-label">Newest last 7 days</div>
+                  <div className="analytics-value">{analytics.newest_last_7_days.length}</div>
+                </div>
+              </div>
+            )}
+          </div>
           <CandidateList
             candidates={filteredCandidates}
             onStatusChange={handleStatusChange}
