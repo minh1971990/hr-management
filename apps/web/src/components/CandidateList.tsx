@@ -36,6 +36,7 @@ export function CandidateList({ candidates, onStatusChange, onDelete, onViewResu
             <th>Full name</th>
             <th>Applied position</th>
             <th>Status</th>
+            <th>Created at</th>
             <th>CV / Resume</th>
             <th>Actions</th>
           </tr>
@@ -49,6 +50,9 @@ export function CandidateList({ candidates, onStatusChange, onDelete, onViewResu
                 <span className={`status-badge status-${c.status.toLowerCase()}`}>
                   {c.status}
                 </span>
+              </td>
+              <td className="cell-date">
+                {c.created_at ? new Date(c.created_at).toLocaleString() : '—'}
               </td>
               <td>
                 {c.resume_url ? (

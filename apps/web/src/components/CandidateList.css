@@ -36,6 +36,12 @@
   color: #f8fafc;
 }
 
+.candidate-table td.cell-date {
+  color: #cbd5e1;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
 .status-badge {
   display: inline-block;
   padding: 0.25rem 0.6rem;
