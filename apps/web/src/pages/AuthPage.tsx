@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
 import './AuthPage.css';
 
 type AuthMode = 'login' | 'register';
@@ -25,21 +26,24 @@ export function AuthPage() {
     setLoading(true);
 
     try {
-      // TODO: Wire to Supabase Auth
-      // if (mode === 'login') {
-      //   const { error } = await supabase.auth.signInWithPassword({ email, password });
-      //   if (error) throw error;
-      // } else {
-      //   const { error } = await supabase.auth.signUp({ email, password, options: { data: { full_name: fullName } } });
-      //   if (error) throw error;
-      // }
-      // navigate('/dashboard');
-
-      // UI placeholder: simulate success
-      await new Promise((r) => setTimeout(r, 600));
-      setMessage({ type: 'success', text: mode === 'login' ? 'Login successful.' : 'Check your email to confirm.' });
       if (mode === 'login') {
-        setTimeout(() => navigate('/dashboard'), 800);
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        setMessage({ type: 'success', text: 'Login successful.' });
+        navigate('/dashboard', { replace: true });
+      } else {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { data: { full_name: fullName } },
+        });
+        if (error) throw error;
+        if (data.session) {
+          setMessage({ type: 'success', text: 'Account created.' });
+          navigate('/dashboard', { replace: true });
+        } else {
+          setMessage({ type: 'success', text: 'Check your email to confirm your account.' });
+        }
       }
     } catch (err) {
       setMessage({
