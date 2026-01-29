@@ -134,6 +134,20 @@ export function DashboardPage() {
     }
   };
 
+  const handleDelete = async (candidateId: string) => {
+    setCandidates((prev) => prev.filter((c) => c.id !== candidateId));
+    const { data: deleted, error: deleteError } = await supabase
+      .from('candidates')
+      .delete()
+      .eq('id', candidateId)
+      .select('id');
+    if (deleteError || !deleted?.length) {
+      setError(deleteError?.message ?? 'Failed to delete candidate. You can only delete candidates you added.');
+      const { data } = await supabase.from('candidates').select('*').order('created_at', { ascending: false });
+      setCandidates((data ?? []) as Candidate[]);
+    }
+  };
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     navigate('/login', { replace: true });
@@ -160,6 +174,7 @@ export function DashboardPage() {
           <CandidateList
             candidates={candidates}
             onStatusChange={handleStatusChange}
+            onDelete={handleDelete}
             onViewResume={async (resumeUrl) => {
               if (resumeUrl.startsWith('http')) {
                 window.open(resumeUrl, '_blank');

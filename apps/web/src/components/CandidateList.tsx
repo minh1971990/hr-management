@@ -6,11 +6,12 @@ const STATUS_OPTIONS: CandidateStatus[] = ['New', 'Interviewing', 'Hired', 'Reje
 interface CandidateListProps {
   candidates: Candidate[];
   onStatusChange?: (candidateId: string, newStatus: CandidateStatus) => void;
+  onDelete?: (candidateId: string) => void | Promise<void>;
   onViewResume?: (resumeUrl: string) => void | Promise<void>;
   loading?: boolean;
 }
 
-export function CandidateList({ candidates, onStatusChange, onViewResume, loading }: CandidateListProps) {
+export function CandidateList({ candidates, onStatusChange, onDelete, onViewResume, loading }: CandidateListProps) {
   if (loading) {
     return (
       <div className="candidate-list-loading">
@@ -82,7 +83,7 @@ export function CandidateList({ candidates, onStatusChange, onViewResume, loadin
                   <span className="no-cv">—</span>
                 )}
               </td>
-              <td>
+              <td className="cell-actions">
                 <select
                   className="status-select"
                   value={c.status}
@@ -97,6 +98,17 @@ export function CandidateList({ candidates, onStatusChange, onViewResume, loadin
                     </option>
                   ))}
                 </select>
+                {onDelete && (
+                  <button
+                    type="button"
+                    className="delete-btn"
+                    onClick={() => onDelete(c.id)}
+                    aria-label={`Delete ${c.full_name}`}
+                    title="Delete candidate"
+                  >
+                    ×
+                  </button>
+                )}
               </td>
             </tr>
           ))}
