@@ -36,12 +36,51 @@ export function DashboardPage() {
     loadCandidates();
   }, [navigate]);
 
-  const handleAddCandidate = async (_values: AddCandidateFormValues) => {
+  const handleAddCandidate = async (values: AddCandidateFormValues) => {
     setAdding(true);
+    setError(null);
     try {
-      // TODO: 1) Upload file to Supabase Storage, 2) Call Edge Function or insert into candidates table
-      // Then load candidates from Supabase (or use Realtime to update list)
-      await Promise.resolve();
+      if (!values.resume_file) {
+        setError('CV / Resume file is required. Please upload a PDF.');
+        setAdding(false);
+        return;
+      }
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user?.id) {
+        setError('You must be signed in to add a candidate.');
+        return;
+      }
+      const userId = session.user.id;
+
+      const ext = values.resume_file.name.split('.').pop() ?? 'pdf';
+      const path = `${userId}/${crypto.randomUUID()}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from('resumes')
+        .upload(path, values.resume_file, { upsert: false });
+      if (uploadError) {
+        setError(uploadError.message);
+        return;
+      }
+      const { data: publicUrlData } = supabase.storage.from('resumes').getPublicUrl(path);
+      const resumeUrl = publicUrlData.publicUrl;
+
+      const { data: newRow, error: insertError } = await supabase
+        .from('candidates')
+        .insert({
+          user_id: userId,
+          full_name: values.full_name,
+          applied_position: values.applied_position,
+          status: values.status,
+          resume_url: resumeUrl,
+        })
+        .select('*')
+        .single();
+
+      if (insertError) {
+        setError(insertError.message);
+        return;
+      }
+      setCandidates((prev) => [newRow as Candidate, ...prev]);
     } finally {
       setAdding(false);
     }
@@ -88,6 +127,14 @@ export function DashboardPage() {
           <CandidateList
             candidates={candidates}
             onStatusChange={handleStatusChange}
+            onViewResume={async (resumeUrl) => {
+              if (resumeUrl.startsWith('http')) {
+                window.open(resumeUrl, '_blank');
+                return;
+              }
+              const { data } = await supabase.storage.from('resumes').createSignedUrl(resumeUrl, 60);
+              if (data?.signedUrl) window.open(data.signedUrl, '_blank');
+            }}
             loading={loadingList}
           />
         </section>

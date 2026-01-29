@@ -6,10 +6,11 @@ const STATUS_OPTIONS: CandidateStatus[] = ['New', 'Interviewing', 'Hired', 'Reje
 interface CandidateListProps {
   candidates: Candidate[];
   onStatusChange?: (candidateId: string, newStatus: CandidateStatus) => void;
+  onViewResume?: (resumeUrl: string) => void | Promise<void>;
   loading?: boolean;
 }
 
-export function CandidateList({ candidates, onStatusChange, loading }: CandidateListProps) {
+export function CandidateList({ candidates, onStatusChange, onViewResume, loading }: CandidateListProps) {
   if (loading) {
     return (
       <div className="candidate-list-loading">
@@ -50,14 +51,33 @@ export function CandidateList({ candidates, onStatusChange, loading }: Candidate
               </td>
               <td>
                 {c.resume_url ? (
-                  <a
-                    href={c.resume_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="cv-link"
-                  >
-                    View CV
-                  </a>
+                  c.resume_url.startsWith('http') ? (
+                    <a
+                      href={c.resume_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="cv-link"
+                    >
+                      View CV
+                    </a>
+                  ) : onViewResume ? (
+                    <button
+                      type="button"
+                      className="cv-link cv-link-button"
+                      onClick={() => onViewResume(c.resume_url!)}
+                    >
+                      View CV
+                    </button>
+                  ) : (
+                    <a
+                      href={c.resume_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="cv-link"
+                    >
+                      View CV
+                    </a>
+                  )
                 ) : (
                   <span className="no-cv">—</span>
                 )}

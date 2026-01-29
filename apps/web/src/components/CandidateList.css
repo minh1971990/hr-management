@@ -64,13 +64,24 @@
   color: #fca5a5;
 }
 
-.cv-link {
+.cv-link,
+.cv-link-button {
   color: #60a5fa;
   text-decoration: none;
 }
 
-.cv-link:hover {
+.cv-link:hover,
+.cv-link-button:hover {
   text-decoration: underline;
+}
+
+.cv-link-button {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: inherit;
+  cursor: pointer;
+  font-family: inherit;
 }
 
 .no-cv {
