@@ -1,0 +1,109 @@
+.candidate-filters {
+  padding: 1rem 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.15);
+  margin-bottom: 1.25rem;
+}
+
+.candidate-filters__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.candidate-filters__title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #f8fafc;
+}
+
+.candidate-filters__meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.candidate-filters__count {
+  font-size: 0.85rem;
+  color: #94a3b8;
+}
+
+.candidate-filters__reset {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #cbd5e1;
+  border-radius: 8px;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.candidate-filters__reset:hover {
+  border-color: rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.candidate-filters__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+}
+
+.candidate-filters__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.candidate-filters__field.wide {
+  grid-column: span 3;
+}
+
+.candidate-filters__field label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #cbd5e1;
+}
+
+.candidate-filters__field input,
+.candidate-filters__field select {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.25);
+  color: #f8fafc;
+  font-size: 0.95rem;
+}
+
+.candidate-filters__field input:focus,
+.candidate-filters__field select:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+@media (max-width: 900px) {
+  .candidate-filters__grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .candidate-filters__field.wide {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 640px) {
+  .candidate-filters__grid {
+    grid-template-columns: 1fr;
+  }
+  .candidate-filters__field.wide {
+    grid-column: span 1;
+  }
+  .candidate-filters__header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
