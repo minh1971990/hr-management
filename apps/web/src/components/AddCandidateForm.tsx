@@ -36,6 +36,7 @@ export function AddCandidateForm({ onSubmit, loading }: AddCandidateFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!resumeFile) return;
     await onSubmit({
       full_name: fullName.trim(),
       applied_position: appliedPosition.trim(),
@@ -94,7 +95,7 @@ export function AddCandidateForm({ onSubmit, loading }: AddCandidateFormProps) {
           </select>
         </div>
         <div className="form-group form-group-file">
-          <label>CV / Resume (PDF)</label>
+          <label htmlFor="resume-upload">CV / Resume (PDF) <span className="required">*</span></label>
           <div className="file-input-wrap">
             <input
               id="resume-upload"
@@ -102,7 +103,8 @@ export function AddCandidateForm({ onSubmit, loading }: AddCandidateFormProps) {
               accept=".pdf,application/pdf"
               onChange={handleFileChange}
               className="file-input"
-              aria-label="Upload resume"
+              aria-label="Upload resume (required)"
+              required
             />
             <span className="file-label">{fileLabel}</span>
           </div>
