@@ -1,24 +1,25 @@
 import { useState } from 'react';
-import type { CandidateStatus } from '@hr-management/shared';
+import type { CandidateStatus, Job } from '@hr-management/shared';
 import './AddCandidateForm.css';
 
 const DEFAULT_STATUS: CandidateStatus = 'New';
 
 export interface AddCandidateFormValues {
   full_name: string;
-  applied_position: string;
+  job_id: string;
   status: CandidateStatus;
   resume_file: File | null;
 }
 
 interface AddCandidateFormProps {
+  jobs: Job[];
   onSubmit: (values: AddCandidateFormValues) => void | Promise<void>;
   loading?: boolean;
 }
 
-export function AddCandidateForm({ onSubmit, loading }: AddCandidateFormProps) {
+export function AddCandidateForm({ jobs, onSubmit, loading }: AddCandidateFormProps) {
   const [fullName, setFullName] = useState('');
-  const [appliedPosition, setAppliedPosition] = useState('');
+  const [jobId, setJobId] = useState('');
   const [status, setStatus] = useState<CandidateStatus>(DEFAULT_STATUS);
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [fileLabel, setFileLabel] = useState('No file chosen');
@@ -37,14 +38,15 @@ export function AddCandidateForm({ onSubmit, loading }: AddCandidateFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!resumeFile) return;
+    if (!jobId) return;
     await onSubmit({
       full_name: fullName.trim(),
-      applied_position: appliedPosition.trim(),
+      job_id: jobId,
       status,
       resume_file: resumeFile,
     });
     setFullName('');
-    setAppliedPosition('');
+    setJobId('');
     setStatus(DEFAULT_STATUS);
     setResumeFile(null);
     setFileLabel('No file chosen');
@@ -69,15 +71,23 @@ export function AddCandidateForm({ onSubmit, loading }: AddCandidateFormProps) {
           />
         </div>
         <div className="form-group">
-          <label htmlFor="applied_position">Applied position</label>
-          <input
-            id="applied_position"
-            type="text"
-            value={appliedPosition}
-            onChange={(e) => setAppliedPosition(e.target.value)}
-            placeholder="Frontend Developer"
+          <label htmlFor="job_id">Applied position</label>
+          <select
+            id="job_id"
+            value={jobId}
+            onChange={(e) => setJobId(e.target.value)}
             required
-          />
+            disabled={jobs.length === 0}
+          >
+            <option value="" disabled>
+              {jobs.length === 0 ? 'Add a job first' : 'Select a job'}
+            </option>
+            {jobs.map((job) => (
+              <option key={job.id} value={job.id}>
+                {job.title}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
       <div className="form-row">

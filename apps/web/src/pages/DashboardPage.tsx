@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { Candidate, CandidateStatus } from '@hr-management/shared';
+import type { Candidate, CandidateStatus, Job } from '@hr-management/shared';
 import { supabase } from '../lib/supabase';
 import { CandidateList } from '../components/CandidateList';
 import { AddCandidateForm, type AddCandidateFormValues } from '../components/AddCandidateForm';
+import { AddJobForm, type AddJobFormValues } from '../components/AddJobForm';
 import './DashboardPage.css';
 
 export function DashboardPage() {
@@ -11,6 +12,9 @@ export function DashboardPage() {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [loadingList, setLoadingList] = useState(true);
   const [adding, setAdding] = useState(false);
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [loadingJobs, setLoadingJobs] = useState(true);
+  const [addingJob, setAddingJob] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -35,6 +39,25 @@ export function DashboardPage() {
     }
     loadCandidates();
   }, [navigate]);
+
+  useEffect(() => {
+    async function loadJobs() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      setLoadingJobs(true);
+      const { data, error: fetchError } = await supabase
+        .from('jobs')
+        .select('*')
+        .order('created_at', { ascending: false });
+      setLoadingJobs(false);
+      if (fetchError) {
+        setError(fetchError.message);
+        return;
+      }
+      setJobs((data ?? []) as Job[]);
+    }
+    loadJobs();
+  }, []);
 
   // Realtime: when any user adds/updates/deletes a candidate, all online users' lists update
   useEffect(() => {
@@ -69,6 +92,37 @@ export function DashboardPage() {
     };
   }, []);
 
+  // Realtime: keep jobs dropdown updated for all users
+  useEffect(() => {
+    const channel = supabase
+      .channel('jobs-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'jobs',
+        },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            const newJob = payload.new as Job;
+            setJobs((prev) => [newJob, ...prev.filter((j) => j.id !== newJob.id)]);
+          } else if (payload.eventType === 'UPDATE') {
+            const updated = payload.new as Job;
+            setJobs((prev) => prev.map((j) => (j.id === updated.id ? updated : j)));
+          } else if (payload.eventType === 'DELETE') {
+            const deleted = payload.old as { id: string };
+            setJobs((prev) => prev.filter((j) => j.id !== deleted.id));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   const handleAddCandidate = async (values: AddCandidateFormValues) => {
     setAdding(true);
     setError(null);
@@ -76,6 +130,11 @@ export function DashboardPage() {
       if (!values.resume_file) {
         setError('CV / Resume file is required. Please upload a PDF.');
         setAdding(false);
+        return;
+      }
+      const selectedJob = jobs.find((j) => j.id === values.job_id);
+      if (!selectedJob) {
+        setError('Please select a valid job.');
         return;
       }
       const { data: { session } } = await supabase.auth.getSession();
@@ -102,7 +161,7 @@ export function DashboardPage() {
         .insert({
           user_id: userId,
           full_name: values.full_name,
-          applied_position: values.applied_position,
+          applied_position: selectedJob.title,
           status: values.status,
           resume_url: resumeUrl,
         })
@@ -116,6 +175,33 @@ export function DashboardPage() {
       setCandidates((prev) => [newRow as Candidate, ...prev]);
     } finally {
       setAdding(false);
+    }
+  };
+
+  const handleAddJob = async (values: AddJobFormValues) => {
+    setAddingJob(true);
+    setError(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setError('You must be signed in to add a job.');
+        return;
+      }
+      const { data: newJob, error: insertError } = await supabase
+        .from('jobs')
+        .insert({
+          title: values.title,
+          description: values.description,
+        })
+        .select('*')
+        .single();
+      if (insertError) {
+        setError(insertError.message);
+        return;
+      }
+      setJobs((prev) => [newJob as Job, ...prev]);
+    } finally {
+      setAddingJob(false);
     }
   };
 
@@ -168,7 +254,8 @@ export function DashboardPage() {
             {error}
           </div>
         )}
-        <AddCandidateForm onSubmit={handleAddCandidate} loading={adding} />
+        <AddJobForm onSubmit={handleAddJob} loading={addingJob} />
+        <AddCandidateForm jobs={jobs} onSubmit={handleAddCandidate} loading={adding || loadingJobs} />
         <section className="candidates-section">
           <h2 className="section-title">All candidates</h2>
           <CandidateList
