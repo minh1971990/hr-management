@@ -36,6 +36,39 @@ export function DashboardPage() {
     loadCandidates();
   }, [navigate]);
 
+  // Realtime: when any user adds/updates/deletes a candidate, all online users' lists update
+  useEffect(() => {
+    const channel = supabase
+      .channel('candidates-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'candidates',
+        },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            const newRow = payload.new as Candidate;
+            setCandidates((prev) => [newRow, ...prev.filter((c) => c.id !== newRow.id)]);
+          } else if (payload.eventType === 'UPDATE') {
+            const updated = payload.new as Candidate;
+            setCandidates((prev) =>
+              prev.map((c) => (c.id === updated.id ? updated : c))
+            );
+          } else if (payload.eventType === 'DELETE') {
+            const deleted = payload.old as { id: string };
+            setCandidates((prev) => prev.filter((c) => c.id !== deleted.id));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   const handleAddCandidate = async (values: AddCandidateFormValues) => {
     setAdding(true);
     setError(null);
