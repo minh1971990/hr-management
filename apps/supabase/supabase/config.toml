@@ -361,6 +361,16 @@ inspector_port = 8083
 # The Deno major version to use.
 deno_version = 2
 
+# Edge Functions
+# NOTE: Browser calls trigger CORS preflight (OPTIONS) without Authorization.
+# Setting verify_jwt = false allows OPTIONS to reach the function handler,
+# and we enforce auth inside the function using supabase.auth.getUser().
+[functions.add-candidate]
+verify_jwt = false
+
+[functions.analytics]
+verify_jwt = false
+
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 
