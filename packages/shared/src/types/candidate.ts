@@ -7,6 +7,7 @@ export interface Candidate {
   applied_position: string;
   status: CandidateStatus;
   resume_url: string | null;
+  matching_score?: number | null;
   created_at: string;
   updated_at: string;
 }

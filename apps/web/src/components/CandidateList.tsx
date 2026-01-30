@@ -36,6 +36,7 @@ export function CandidateList({ candidates, onStatusChange, onDelete, onViewResu
             <th>Full name</th>
             <th>Applied position</th>
             <th>Status</th>
+            <th>Match score</th>
             <th>Created at</th>
             <th>CV / Resume</th>
             <th>Actions</th>
@@ -50,6 +51,11 @@ export function CandidateList({ candidates, onStatusChange, onDelete, onViewResu
                 <span className={`status-badge status-${c.status.toLowerCase()}`}>
                   {c.status}
                 </span>
+              </td>
+              <td className="cell-score">
+                {typeof c.matching_score === 'number'
+                  ? `${Math.round(c.matching_score * 100) / 100}%`
+                  : '—'}
               </td>
               <td className="cell-date">
                 {c.created_at ? new Date(c.created_at).toLocaleString() : '—'}

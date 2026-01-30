@@ -48,7 +48,7 @@ export function DashboardPage() {
       setError(null);
       const { data, error: fetchError } = await supabase
         .from('candidates')
-        .select('id,user_id,full_name,applied_position,status,resume_url,created_at,updated_at')
+        .select('id,user_id,full_name,applied_position,status,resume_url,matching_score,created_at,updated_at')
         .order('created_at', { ascending: false });
       setLoadingList(false);
       if (fetchError) {
@@ -438,7 +438,7 @@ export function DashboardPage() {
       setError(updateError.message);
       const { data } = await supabase
         .from('candidates')
-        .select('id,user_id,full_name,applied_position,status,resume_url,created_at,updated_at')
+        .select('id,user_id,full_name,applied_position,status,resume_url,matching_score,created_at,updated_at')
         .order('created_at', { ascending: false });
       setCandidates((data ?? []) as Candidate[]);
     }
@@ -455,7 +455,7 @@ export function DashboardPage() {
       setError(deleteError?.message ?? 'Failed to delete candidate. You can only delete candidates you added.');
       const { data } = await supabase
         .from('candidates')
-        .select('id,user_id,full_name,applied_position,status,resume_url,created_at,updated_at')
+        .select('id,user_id,full_name,applied_position,status,resume_url,matching_score,created_at,updated_at')
         .order('created_at', { ascending: false });
       setCandidates((data ?? []) as Candidate[]);
     }
