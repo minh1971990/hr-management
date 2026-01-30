@@ -89,10 +89,30 @@ Deno.serve(async (req) => {
       status,
       resume_url,
     })
-    .select('id,user_id,full_name,applied_position,status,resume_url,created_at,updated_at')
+    .select('id,user_id,full_name,applied_position,status,resume_url,matching_score,recommendation,reasoning,created_at,updated_at')
     .single();
 
   if (insertErr) return json(400, { error: insertErr.message });
+
+  // Fire-and-forget webhook to n8n for downstream automation (e.g. matching score)
+  const webhookUrl = Deno.env.get('N8N_WEBHOOK_URL');
+  const webhookSecret = Deno.env.get('N8N_WEBHOOK_SECRET');
+  if (webhookUrl && webhookSecret) {
+    void fetch(webhookUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-webhook-secret': webhookSecret,
+      },
+      body: JSON.stringify({
+        candidate_id: newRow?.id,
+        job_id,
+        resume_url,
+      }),
+    }).catch(() => {
+      // don't block candidate creation if webhook fails
+    });
+  }
 
   return json(201, { candidate: newRow });
 });
