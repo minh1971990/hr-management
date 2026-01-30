@@ -1,6 +1,12 @@
 import './CandidateFilters.css';
 
-export type CandidateSortMode = 'relevance' | 'newest' | 'oldest' | 'name_az' | 'name_za';
+export type CandidateSortMode =
+  | 'relevance'
+  | 'match_score_desc'
+  | 'newest'
+  | 'oldest'
+  | 'name_az'
+  | 'name_za';
 
 export interface CandidateFiltersValue {
   query: string;
@@ -116,6 +122,7 @@ export function CandidateFilters({
             onChange={(e) => onChange({ ...value, sort: e.target.value as CandidateSortMode })}
           >
             <option value="relevance">Smart (relevance)</option>
+            <option value="match_score_desc">Match score (high → low)</option>
             <option value="newest">Newest first</option>
             <option value="oldest">Oldest first</option>
             <option value="name_az">Name A → Z</option>

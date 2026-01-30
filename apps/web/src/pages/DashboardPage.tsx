@@ -186,6 +186,12 @@ export function DashboardPage() {
         if (b.score !== a.score) return b.score - a.score;
         return new Date(b.c.created_at).getTime() - new Date(a.c.created_at).getTime();
       }
+      if (filters.sort === 'match_score_desc') {
+        const as = typeof a.c.matching_score === 'number' ? a.c.matching_score : -1;
+        const bs = typeof b.c.matching_score === 'number' ? b.c.matching_score : -1;
+        if (bs !== as) return bs - as;
+        return new Date(b.c.created_at).getTime() - new Date(a.c.created_at).getTime();
+      }
       if (filters.sort === 'newest') {
         return new Date(b.c.created_at).getTime() - new Date(a.c.created_at).getTime();
       }
