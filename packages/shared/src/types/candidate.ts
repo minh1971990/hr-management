@@ -8,6 +8,8 @@ export interface Candidate {
   status: CandidateStatus;
   resume_url: string | null;
   matching_score?: number | null;
+  recommendation?: string | null;
+  reasoning?: string | null;
   created_at: string;
   updated_at: string;
 }
