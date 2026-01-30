@@ -48,6 +48,45 @@
   white-space: nowrap;
 }
 
+.score-pending {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #94a3b8;
+}
+
+.score-pending-text {
+  font-size: 0.85rem;
+}
+
+.score-pending-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: #94a3b8;
+}
+
+.score-spinner {
+  animation: score-spin 0.9s linear infinite;
+}
+
+.score-spinner-track {
+  stroke: rgba(148, 163, 184, 0.25);
+}
+
+.score-spinner-head {
+  stroke: rgba(148, 163, 184, 0.9);
+}
+
+@keyframes score-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .match-wrap {
   display: inline-flex;
   flex-direction: column;

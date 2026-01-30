@@ -11,6 +11,34 @@ type MatchBucket =
   | 'weak_match'
   | 'not_recommended';
 
+function ScoreSpinner() {
+  return (
+    <svg
+      className="score-spinner"
+      viewBox="0 0 24 24"
+      width="16"
+      height="16"
+      aria-hidden="true"
+    >
+      <circle
+        className="score-spinner-track"
+        cx="12"
+        cy="12"
+        r="9"
+        fill="none"
+        strokeWidth="3"
+      />
+      <path
+        className="score-spinner-head"
+        d="M21 12a9 9 0 0 0-9-9"
+        fill="none"
+        strokeWidth="3"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 function getMatchMeta(score: number): { bucket: MatchBucket; label: string; description: string } {
   const s = Math.max(0, Math.min(100, score));
 
@@ -127,7 +155,10 @@ export function CandidateList({ candidates, onStatusChange, onDelete, onViewResu
                     );
                   })()
                 ) : (
-                  '—'
+                  <div className="score-pending" title="Calculating matching score…">
+                    <ScoreSpinner />
+                    <span className="score-pending-text">Calculating…</span>
+                  </div>
                 )}
               </td>
               <td className="cell-date">
@@ -231,7 +262,11 @@ export function CandidateList({ candidates, onStatusChange, onDelete, onViewResu
                 <div className="modal-v">
                   {typeof detailsCandidate.matching_score === 'number'
                     ? `${Math.round(detailsCandidate.matching_score * 100) / 100}%`
-                    : '—'}
+                    : (
+                        <span className="score-pending-inline" title="Calculating matching score…">
+                          <ScoreSpinner /> Calculating…
+                        </span>
+                      )}
                 </div>
               </div>
               <hr className="modal-sep" />
