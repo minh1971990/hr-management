@@ -94,6 +94,39 @@ Open the URL printed in the terminal and:
 
 ---
 
+## Match score automation workflow (n8n)
+
+`matching_score` is computed asynchronously using an n8n workflow triggered by a webhook fired from the `add-candidate` Edge Function.
+
+### Trigger
+- **Supabase Edge Function**: `add-candidate`
+  - After inserting a candidate row, the function sends a **fire-and-forget** webhook to n8n:
+    - `candidate_id`
+    - `job_id`
+    - `resume_url`
+
+### n8n pipeline (high-level)
+1. **Webhook trigger**: receives `{ candidate_id, job_id, resume_url }`
+2. **Get job description**: fetch the job details from Supabase (`jobs`)
+3. **Get candidate data**: fetch candidate details (for context / validation)
+4. **Download resume**: GET `resume_url` (PDF)
+5. **Extract resume text**: convert PDF → plain text
+6. **Prepare AI input**: combine job description + extracted resume text
+7. **AI match**: LLM produces a structured result containing:
+   - `matching_score` (0–100)
+   - `reasoning` (short explanation)
+8. **Format results**: normalize/validate output
+9. **Update candidate row**: write back to Supabase (`candidates`) via update:
+   - `matching_score`
+   - `reasoning`
+
+### Notes
+- This is **event-driven**: HR creates a candidate → webhook triggers scoring.
+- The UI shows a spinner (“Calculating…”) until `matching_score` is populated.
+- For production, use the **production webhook URL** in `N8N_WEBHOOK_URL` and keep the workflow **Active**.
+
+---
+
 ## Repository structure
 
 ```text
