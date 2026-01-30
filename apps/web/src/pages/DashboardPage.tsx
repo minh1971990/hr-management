@@ -27,6 +27,7 @@ export function DashboardPage() {
   const [analytics, setAnalytics] = useState<AnalyticsResponse | null>(null);
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
   const [analyticsError, setAnalyticsError] = useState<string | null>(null);
+  const [recommendJobTitle, setRecommendJobTitle] = useState<string | null>(null);
 
   const [filters, setFilters] = useState<CandidateFiltersValue>({
     query: '',
@@ -202,6 +203,28 @@ export function DashboardPage() {
 
     return withScores.map(({ c }) => c);
   }, [candidates, filters]);
+
+  const jobCandidateCounts = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const c of candidates) {
+      map.set(c.applied_position, (map.get(c.applied_position) ?? 0) + 1);
+    }
+    return map;
+  }, [candidates]);
+
+  const top3ForRecommendedJob = useMemo(() => {
+    if (!recommendJobTitle) return [];
+    return candidates
+      .filter((c) => c.applied_position === recommendJobTitle)
+      .slice()
+      .sort((a, b) => {
+        const as = typeof a.matching_score === 'number' ? a.matching_score : -1;
+        const bs = typeof b.matching_score === 'number' ? b.matching_score : -1;
+        if (bs !== as) return bs - as;
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      })
+      .slice(0, 3);
+  }, [candidates, recommendJobTitle]);
 
   const loadAnalytics = async () => {
     setLoadingAnalytics(true);
@@ -482,6 +505,49 @@ export function DashboardPage() {
           </div>
         )}
         <AddJobForm onSubmit={handleAddJob} loading={addingJob} />
+        <section className="jobs-section">
+          <h2 className="section-title">Jobs</h2>
+          <div className="jobs-table-wrap">
+            <table className="jobs-table">
+              <thead>
+                <tr>
+                  <th>Job title</th>
+                  <th>Candidates</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {jobs.length === 0 ? (
+                  <tr>
+                    <td colSpan={3} className="jobs-empty">
+                      {loadingJobs ? 'Loading jobs…' : 'No jobs yet. Add one above.'}
+                    </td>
+                  </tr>
+                ) : (
+                  jobs.map((j) => {
+                    const count = jobCandidateCounts.get(j.title) ?? 0;
+                    return (
+                      <tr key={j.id}>
+                        <td className="jobs-title">{j.title}</td>
+                        <td className="jobs-count">{loadingList ? '…' : count}</td>
+                        <td>
+                          <button
+                            type="button"
+                            className="jobs-recommend"
+                            onClick={() => setRecommendJobTitle(j.title)}
+                            disabled={loadingList}
+                          >
+                            Top 3 candidates
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
         <AddCandidateForm jobs={jobs} onSubmit={handleAddCandidate} loading={adding || loadingJobs} />
         <section className="candidates-section">
           <h2 className="section-title">All candidates</h2>
@@ -563,6 +629,53 @@ export function DashboardPage() {
             loading={loadingList}
           />
         </section>
+
+        {recommendJobTitle && (
+          <div
+            className="modal-backdrop"
+            role="dialog"
+            aria-modal="true"
+            onClick={() => setRecommendJobTitle(null)}
+          >
+            <div className="modal" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <div className="modal-title">Top 3 candidates for: {recommendJobTitle}</div>
+                <button
+                  type="button"
+                  className="modal-close"
+                  onClick={() => setRecommendJobTitle(null)}
+                  aria-label="Close"
+                >
+                  ×
+                </button>
+              </div>
+              <div className="modal-body">
+                {top3ForRecommendedJob.length === 0 ? (
+                  <div className="modal-v">No candidates found for this job yet.</div>
+                ) : (
+                  <ol className="jobs-top3">
+                    {top3ForRecommendedJob.map((c) => (
+                      <li key={c.id} className="jobs-top3-item">
+                        <div className="jobs-top3-name">{c.full_name}</div>
+                        <div className="jobs-top3-meta">
+                          <span className="jobs-top3-score">
+                            {typeof c.matching_score === 'number'
+                              ? `${Math.round(c.matching_score * 100) / 100}%`
+                              : '—'}
+                          </span>
+                          <span className="jobs-top3-dot">•</span>
+                          <span>{c.status}</span>
+                          <span className="jobs-top3-dot">•</span>
+                          <span>{c.created_at ? new Date(c.created_at).toLocaleString() : '—'}</span>
+                        </div>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
